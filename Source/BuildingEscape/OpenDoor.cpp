@@ -2,8 +2,8 @@
 
 #include "OpenDoor.h"
 #include "GameFramework/Actor.h"
+#include "Engine/World.h"
 
-AActor* Actor;
 
 // Sets default values for this component's properties
 UOpenDoor::UOpenDoor()
@@ -11,7 +11,7 @@ UOpenDoor::UOpenDoor()
 	// Set this component to be initialized when the game starts, and to be ticked every frame.  You can turn these features
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
-
+	
 }
 
 
@@ -20,9 +20,8 @@ void UOpenDoor::BeginPlay()
 {
 	Super::BeginPlay();
 
-	Actor = GetOwner();
-	FRotator rotator = FRotator(0.0f, -60.0f, 0.0f);
-	Actor->SetActorRotation(rotator);
+	Character = GetWorld()->GetFirstPlayerController()->GetPawn();
+	Door = GetOwner();
 }
 
 
@@ -31,6 +30,27 @@ void UOpenDoor::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompon
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
-	
+	if (PlessurePlate->IsOverlappingActor(Character))
+	{
+		OpenDoor();
+		LastDoorOpenTime = GetWorld()->GetTimeSeconds();
+	}
+
+	float currentTime = GetWorld()->GetTimeSeconds();
+	if (currentTime > (LastDoorOpenTime + DoorCloseDelay))
+	{
+		CloseDoor();
+		LastDoorOpenTime = 0;
+	}
+}
+
+void UOpenDoor::OpenDoor()
+{
+	Door->SetActorRotation(FRotator(0.0f, -angle, 0.0f));
+}
+
+void UOpenDoor::CloseDoor()
+{
+	Door->SetActorRotation(FRotator(0.0f, 0.0f, 0.0f));
 }
 
