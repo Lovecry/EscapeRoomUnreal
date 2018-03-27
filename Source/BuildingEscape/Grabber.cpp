@@ -27,18 +27,13 @@ void UGrabber::TickComponent(float DeltaTime, ELevelTick TickType, FActorCompone
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 	if (PhysicsHandle->GrabbedComponent)
 	{
-		FVector Location;
-		FRotator Rotator;
-		GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(Location, Rotator);
-		PhysicsHandle->SetTargetLocation(Location+Rotator.Vector() * Reach);
+		FVector LineTraceEnd = GetReachLineEnd();
+		PhysicsHandle->SetTargetLocation(LineTraceEnd);
 	}
 }
 
 void UGrabber::Grab()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Grab pressed"));
-
-
 	FHitResult hitResult = GetFirstPhysicsBodyInReach();
 	auto ComponentToGrab = hitResult.GetComponent();
 	if (hitResult.GetActor())
@@ -49,25 +44,36 @@ void UGrabber::Grab()
 
 FHitResult UGrabber::GetFirstPhysicsBodyInReach()
 {
-	FVector Location;
-	FRotator Rotator;
-	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(Location, Rotator);
-
-	FVector LineTraceEnd = Location + Rotator.Vector() * Reach;
 	FCollisionQueryParams TraceParams(FName(TEXT("")), false, GetOwner());
 	FHitResult Hit;
-	if (GetWorld()->LineTraceSingleByObjectType(Hit, Location, LineTraceEnd, FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody), TraceParams))
+	if (GetWorld()->LineTraceSingleByObjectType(Hit, GetReachLineStart(), GetReachLineEnd(), FCollisionObjectQueryParams(ECollisionChannel::ECC_PhysicsBody), TraceParams))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Hit %s"), *Hit.GetActor()->GetName());
 	}
 	return Hit;
 }
 
+FVector UGrabber::GetReachLineStart()
+{
+	FVector Location;
+	FRotator Rotator;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(Location, Rotator);
+
+	return Location ;
+}
+
+FVector UGrabber::GetReachLineEnd()
+{
+	FVector Location;
+	FRotator Rotator;
+	GetWorld()->GetFirstPlayerController()->GetPlayerViewPoint(Location, Rotator);
+
+	return Location + Rotator.Vector() * Reach;
+}
+
 void UGrabber::Release()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Grab Released"));
 	PhysicsHandle->ReleaseComponent(); 
-
 }
 
 void UGrabber::FindInputComponent()
@@ -87,11 +93,7 @@ void UGrabber::FindInputComponent()
 void UGrabber::FindPhysicsHandleComponent()
 {
 	PhysicsHandle = GetOwner()->FindComponentByClass<UPhysicsHandleComponent>();
-	if (PhysicsHandle)
-	{
-
-	}
-	else
+	if (PhysicsHandle == nullptr)
 	{
 		UE_LOG(LogTemp, Error, TEXT("No PhysicHandleComponent Found : %s"), *GetOwner()->GetName());
 	}
